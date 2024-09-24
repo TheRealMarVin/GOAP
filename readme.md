@@ -40,7 +40,7 @@ Because we believe in simplicity, this should be a breeze. You can run the whole
 
 ### Step 3: Run the show!
 ```bash
-python goap_simulator.py
+python main_cook.py
 ```
 Sit back, relax, and enjoy as your NPCs plan their next move in a world filled with virtual dilemmas and questionable choices. Who knows? Maybe they’ll even succeed!
 
