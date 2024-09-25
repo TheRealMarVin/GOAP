@@ -8,10 +8,10 @@ from goap_planner import GOAPPlanner
 
 
 actions = [
-    Action("Gather Wood1", preconditions={}, effects={"has_wood": True}, duration=3, cost=3),
-    Action("Gather Wood2", preconditions={}, effects={"has_wood": True}, duration=3, cost=2),
-    Action("Light Fire", preconditions={"has_wood": True}, effects={"has_fire": True}, duration=2, cost=2),
-    Action("Cook Food", preconditions={"has_fire": True}, effects={"has_cooked_food": True}, duration=5, cost=5),
+    Action("Gather Wood1", preconditions={}, effects={"wood": 10}, duration=5, cost=5),
+    Action("Gather Wood2", preconditions={}, effects={"wood": 3}, duration=1, cost=2),
+    Action("Light Fire", preconditions={"wood": 15}, effects={"fire": 1}, duration=2, cost=2),
+    Action("Cook Food", preconditions={"fire": 1}, effects={"cooked_food": 1}, duration=5, cost=5),
 ]
 
 event_manager = EventManager()
@@ -23,16 +23,17 @@ def simulate_event():
     time.sleep(4)
     event_manager.notify()
 
+
 event_thread = threading.Thread(target=simulate_event)
 event_thread.start()
 
 initial_state = {
-    "has_wood": False,
-    "has_fire": False,
-    "has_cooked_food": False
+    "wood": 0,
+    "fire": 0,
+    "cooked_food": 0
 }
 goal_state = {
-    "has_cooked_food": True
+    "cooked_food": 1
 }
 
 agent.execute_plan(initial_state, goal_state)

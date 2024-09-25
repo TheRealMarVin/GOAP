@@ -3,18 +3,17 @@ from typing import Dict
 
 
 class Action:
-    def __init__(self, name: str, preconditions: Dict[str, bool], effects: Dict[str, bool],
-                 duration: int, cost: int = 1):
+    def __init__(self, name: str, preconditions: Dict[str, int], effects: Dict[str, int], duration: int, cost: int = 1):
         self.name = name
         self.preconditions = preconditions
         self.effects = effects
         self.duration = duration
         self.cost = cost
 
-    def is_applicable(self, state: Dict[str, bool]) -> bool:
-        return all(state.get(k, False) == v for k, v in self.preconditions.items())
+    def is_applicable(self, state: Dict[str, int]) -> bool:
+        return all(state.get(k, 0) >= v for k, v in self.preconditions.items())
 
-    def execute(self, state: Dict[str, bool], on_interrupt=None, verbose=True):
+    def execute(self, state: Dict[str, int], on_interrupt=None, verbose=True):
         if verbose:
             print(f"Starting action: {self.name} (duration: {self.duration}s)")
 
@@ -23,9 +22,12 @@ class Action:
                 if verbose:
                     print(f"Action {self.name} interrupted!")
                 return False
-            time.sleep(1)  # Simulate the action taking time
+            time.sleep(1)
+
         if verbose:
             print(f"Action {self.name} completed!")
 
-        state.update(self.effects)
+        for k, v in self.effects.items():
+            state[k] = state.get(k, 0) + v
+
         return True
