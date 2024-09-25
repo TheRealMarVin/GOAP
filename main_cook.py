@@ -1,9 +1,11 @@
+import threading
 import time
 
 from action import Action
 from agent import Agent
 from event_manager import EventManager
 from goap_planner import GOAPPlanner
+
 
 actions = [
     Action("Gather Wood", preconditions={}, effects={"has_wood": True}, duration=3),
@@ -19,10 +21,6 @@ agent = Agent(actions, planner, event_manager)
 def simulate_event():
     time.sleep(4)
     event_manager.notify()
-
-
-# Run the agent in parallel with an event being triggered
-import threading
 
 event_thread = threading.Thread(target=simulate_event)
 event_thread.start()
