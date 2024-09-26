@@ -17,7 +17,7 @@ class GOAPPlanner:
 
         while frontier:
             _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
-            print(plan, current_state_tuple)
+            # print(plan, current_state_tuple)
             current_state = dict(current_state_tuple)
 
             if all(current_state.get(k, 0) >= v for k, v in goal_state.items()):
