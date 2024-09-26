@@ -10,19 +10,22 @@ class Agent:
         self.planner = planner
         self.event_manager = event_manager
         self.should_replan = False
-        self.event_manager.subscribe(self.on_event)
         self.verbose = verbose
+        self.event_manager.subscribe(self.on_event)
 
     def on_event(self):
         if self.verbose:
             print("Event detected! Replanning required.")
         self.should_replan = True
 
-    def execute_plan(self, initial_state: Dict[str, bool], goal_state: Dict[str, bool]):
+    def execute_plan(self, initial_state: Dict[str, int], goal_state: Dict[str, int], context: Dict = None):
+        if context is None:
+            context = {}
+
         current_state = initial_state.copy()
 
         while True:
-            plan, total_cost = self.planner.plan(current_state, goal_state)
+            plan, total_cost = self.planner.plan(current_state, goal_state, context)
 
             if not plan:
                 if self.verbose:
@@ -45,7 +48,10 @@ class Agent:
                     self.should_replan = False
                     break
 
-            if all(current_state.get(k, False) == v for k, v in goal_state.items()):
+                if self.verbose:
+                    print(f"Updated state after action {action_name}: {current_state}")
+
+            if all(current_state.get(k, 0) >= v for k, v in goal_state.items()):
                 if self.verbose:
                     print("Goal achieved!")
                 break

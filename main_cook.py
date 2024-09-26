@@ -36,14 +36,13 @@ goal_state = {
 }
 
 
-def cooking_heuristic(state: Dict[str, int], goal_state: Dict[str, int]) -> int:
+def cooking_heuristic(state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> int:
     return sum(1 for k, v in goal_state.items() if state.get(k, 0) < v)
 
-
 planner = GOAPPlanner(actions, heuristic=cooking_heuristic)
+
+cooking_context = {}
+
+plan, total_cost = planner.plan(initial_state, goal_state, cooking_context)
 chef = Agent(actions, planner, event_manager, verbose=True)
-
 chef.execute_plan(initial_state, goal_state)
-
-
-
