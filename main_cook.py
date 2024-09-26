@@ -5,6 +5,7 @@ from action import Action
 from agent import Agent
 from event_manager import EventManager
 from goap_planner import GOAPPlanner
+from typing import Dict
 
 
 actions = [
@@ -15,8 +16,6 @@ actions = [
 ]
 
 event_manager = EventManager()
-planner = GOAPPlanner(actions)
-agent = Agent(actions, planner, event_manager, True)
 
 
 def simulate_event():
@@ -36,4 +35,15 @@ goal_state = {
     "cooked_food": 1
 }
 
-agent.execute_plan(initial_state, goal_state)
+
+def cooking_heuristic(state: Dict[str, int], goal_state: Dict[str, int]) -> int:
+    return sum(1 for k, v in goal_state.items() if state.get(k, 0) < v)
+
+
+planner = GOAPPlanner(actions, heuristic=cooking_heuristic)
+chef = Agent(actions, planner, event_manager, verbose=True)
+
+chef.execute_plan(initial_state, goal_state)
+
+
+

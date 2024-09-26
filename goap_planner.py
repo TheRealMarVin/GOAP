@@ -1,16 +1,17 @@
-from typing import List, Dict, Tuple
 import heapq
 
+from typing import List, Dict, Tuple, Callable
 from action import Action
 
 
 class GOAPPlanner:
-    def __init__(self, actions: List[Action]):
+    def __init__(self, actions: List[Action], heuristic: Callable[[Dict[str, int], Dict[str, int]], int]):
         self.actions = actions
+        self.heuristic = heuristic
 
     def plan(self, start_state: Dict[str, int], goal_state: Dict[str, int]) -> Tuple[List[str], int]:
         frontier = []
-        heapq.heappush(frontier, (0, 0, self._state_to_tuple(start_state), [], 0))
+        heapq.heappush(frontier, (0, 0, self._state_to_tuple(start_state), [], 0))  # (priority, cost, state_tuple, plan, elapsed_time)
 
         explored = set()
 
@@ -35,17 +36,15 @@ class GOAPPlanner:
                     new_cost = current_cost + action.cost
                     new_elapsed_time = elapsed_time + action.duration
 
-                    h = self._heuristic(new_state, goal_state)
+                    h = self.heuristic(new_state, goal_state)
                     priority = new_cost + h
 
                     heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
 
-    @staticmethod
-    def _heuristic(state: Dict[str, int], goal: Dict[str, int]) -> int:
-        return sum(max(0, v - state.get(k, 0)) for k, v in goal.items())
 
     @staticmethod
     def _state_to_tuple(state: Dict[str, int]) -> Tuple[Tuple[str, int], ...]:
         return tuple(sorted(state.items()))
+
