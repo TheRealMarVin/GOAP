@@ -43,8 +43,6 @@ class GOAPPlanner:
 
         return [], float('inf')
 
-
     @staticmethod
     def _state_to_tuple(state: Dict[str, int]) -> Tuple[Tuple[str, int], ...]:
         return tuple(sorted(state.items()))
-
