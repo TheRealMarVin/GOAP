@@ -25,6 +25,9 @@ class Agent:
         current_state = initial_state.copy()
 
         while True:
+            if "update_state_callback" in context:
+                context["update_state_callback"](current_state, context)
+
             plan, total_cost = self.planner.plan(current_state, goal_state, context)
 
             if not plan:
@@ -39,14 +42,12 @@ class Agent:
             for action_name in plan:
                 action = next(a for a in self.actions if a.name == action_name)
 
-                if not action.is_applicable(current_state):
-                    if self.verbose:
-                        print(f"Action {action_name} is no longer applicable. Re-planning...")
-                    break
-
-                if not action.execute(current_state, on_interrupt=lambda: self.should_replan):
+                if not action.execute(current_state, on_interrupt=lambda: self.should_replan, verbose=self.verbose):
                     self.should_replan = False
                     break
+
+                if "post_action_callback" in context:
+                    context["post_action_callback"](action, current_state, context)
 
                 if self.verbose:
                     print(f"Updated state after action {action_name}: {current_state}")

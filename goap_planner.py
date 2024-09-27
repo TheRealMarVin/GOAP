@@ -33,6 +33,10 @@ class GOAPPlanner:
                     for k, v in action.effects.items():
                         new_state[k] = new_state.get(k, 0) + v
 
+                    # Apply the state update callback if provided in the context
+                    if "update_state_callback" in context:
+                        context["update_state_callback"](new_state, context)
+
                     new_plan = plan + [action.name]
                     new_cost = current_cost + action.cost
                     new_elapsed_time = elapsed_time + action.duration
