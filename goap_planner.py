@@ -11,7 +11,12 @@ class GOAPPlanner:
 
     def plan(self, start_state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> Tuple[List[str], int]:
         frontier = []
-        heapq.heappush(frontier, (0, 0, self._state_to_tuple(start_state), [], 0))
+
+        updated_start_state = start_state.copy()
+        if "update_state_callback" in context:
+            context["update_state_callback"](updated_start_state, context)
+
+        heapq.heappush(frontier, (0, 0, self._state_to_tuple(updated_start_state), [], 0))
 
         explored = set()
 
@@ -20,7 +25,7 @@ class GOAPPlanner:
             # print(plan, current_state_tuple)
             current_state = dict(current_state_tuple)
 
-            if all(current_state.get(k, 0) >= v for k, v in goal_state.items()):
+            if all(current_state.get(k, 0) == v for k, v in goal_state.items()):
                 return plan, current_cost
 
             if current_state_tuple in explored:
@@ -43,6 +48,8 @@ class GOAPPlanner:
 
                     h = self.heuristic(new_state, goal_state, context)
                     priority = new_cost + h
+                    if priority == float('inf'):
+                        raise Exception("infinite weight. Something is wrong")
 
                     heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
