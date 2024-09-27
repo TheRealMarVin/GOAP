@@ -22,7 +22,6 @@ class GOAPPlanner:
 
         while frontier:
             _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
-            # print(plan, current_state_tuple)
             current_state = dict(current_state_tuple)
 
             if all(current_state.get(k, 0) == v for k, v in goal_state.items()):
@@ -38,7 +37,6 @@ class GOAPPlanner:
                     for k, v in action.effects.items():
                         new_state[k] = new_state.get(k, 0) + v
 
-                    # Apply the state update callback if provided in the context
                     if "update_state_callback" in context:
                         context["update_state_callback"](new_state, context)
 
