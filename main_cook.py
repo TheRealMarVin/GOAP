@@ -45,4 +45,4 @@ cooking_context = {}
 
 plan, total_cost = planner.plan(initial_state, goal_state, cooking_context)
 chef = Agent(actions, planner, event_manager, verbose=True)
-chef.execute_plan(initial_state, goal_state)
+chef.execute_plan(initial_state, plan, cooking_context)

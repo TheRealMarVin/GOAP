@@ -105,4 +105,4 @@ planner = GOAPPlanner(actions, heuristic=fight_heuristic)
 
 plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
 fighter = Agent(actions, planner, event_manager, verbose=True)
-fighter.execute_plan(fighter_initial_state, goal_state, fight_context)
+fighter.execute_plan(fighter_initial_state, plan, fight_context)
