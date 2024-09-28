@@ -12,26 +12,27 @@ actions = [
     Action("Cook Food", {"fire": 1}, {"cooked_food": 1}, duration=2, cost=2),
 ]
 
-initial_state = {"wood": 0, "fire": 0, "cooked_food": 0}
-goal_state = {"cooked_food": 1}
-
-event_manager = EventManager()
-
-planner = GOAPPlanner(actions, heuristic=lambda state, goal, context: sum(abs(state.get(k, 0) - v) for k, v in goal.items()))
-
-
-def event_thread():
-    while True:
-        time.sleep(5)
-        event_manager.publish_event()
 
 
 def main(mode):
+    initial_state = {"wood": 0, "fire": 0, "cooked_food": 0}
+    goal_state = {"cooked_food": 1}
+
+    planner = GOAPPlanner(actions,
+                          heuristic=lambda state, goal, context: sum(abs(state.get(k, 0) - v) for k, v in goal.items()))
+
     plan, total_cost = planner.plan(initial_state, goal_state, {})
 
     if mode == "plan":
         print(f"Generated Plan: {plan} with total cost: {total_cost}")
         return
+
+    event_manager = EventManager()
+
+    def event_thread():
+        while True:
+            time.sleep(5)
+            event_manager.publish_event()
 
     agent = Agent(actions, planner, event_manager, verbose=True)
 
