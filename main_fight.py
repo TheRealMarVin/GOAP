@@ -1,3 +1,5 @@
+import argparse
+
 from action import Action
 from agent import Agent
 from event_manager import EventManager
@@ -34,11 +36,6 @@ actions = [
            {"damage_dealt": 20, "blocking": 0, "stamina": -2}, duration=1, cost=2),
     Action("Wait", {}, {"stamina": 10}, duration=1, cost=1)
 ]
-
-event_manager = EventManager()
-
-fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
-goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
 
 
 def fight_heuristic(state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> int:
@@ -93,16 +90,32 @@ def update_enemy_health(action: Action, state: Dict[str, int], context: Dict):
                     print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
 
 
+def main(mode):
+    fight_context = {
+        "enemies": opponents,
+        "update_state_callback": update_fight_state,
+        "post_action_callback": update_enemy_health,
+    }
 
-fight_context = {
-    "enemies": opponents,
-    "update_state_callback": update_fight_state,
-    "post_action_callback": update_enemy_health,
-}
+    fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
+    goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
+
+    planner = GOAPPlanner(actions, heuristic=fight_heuristic)
+    plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
+
+    if mode == "plan":
+        print(f"Generated Plan: {plan} with total cost: {total_cost}")
+        return
+
+    event_manager = EventManager()
+    fighter = Agent(actions, planner, event_manager, verbose=True)
+    fighter.execute_plan(fighter_initial_state, plan, fight_context)
 
 
-planner = GOAPPlanner(actions, heuristic=fight_heuristic)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fighting Experiment")
+    parser.add_argument("--mode", choices=["plan", "execute"], default="plan",
+                        help="Choose whether to plan or execute the experiment")
+    args = parser.parse_args()
 
-plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
-fighter = Agent(actions, planner, event_manager, verbose=True)
-fighter.execute_plan(fighter_initial_state, plan, fight_context)
+    main(args.mode)
