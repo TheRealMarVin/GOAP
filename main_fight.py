@@ -1,3 +1,9 @@
+"""
+This script sets up and runs a fighting experiment using the GOAP (Goal-Oriented Action Planning) system.
+It allows the user to run the experiment in two modes: 'plan' (generates and displays the plan) 
+and 'execute' (executes the plan with dynamic updates via opponent actions).
+"""
+
 import argparse
 import threading
 import time
@@ -11,32 +17,48 @@ from typing import Dict
 
 class Opponent:
     def __init__(self, name: str, x: int, y: int, health: int, move_type: str):
+        """
+        Initializes an opponent with a name, position, health, and movement type.
+
+        Args:
+            name (str): The name of the opponent.
+            x (int): The initial x-coordinate of the opponent.
+            y (int): The initial y-coordinate of the opponent.
+            health (int): The health of the opponent.
+            move_type (str): The type of movement ("vertical" or "horizontal").
+        """
         self.name = name
         self.x = x
         self.y = y
         self.health = health
-        self.move_type = move_type  # "vertical" or "horizontal"
-        self.actions = [("Wait", 2)]  # Start with waiting
+        self.move_type = move_type
+        self.actions = [("Wait", 2)] 
         self.current_action_index = 0
-        self.move_direction = 1  # 1 for moving up/right, -1 for moving down/left
+        self.move_direction = 1
 
     def perform_action(self):
+        """
+        Executes the current action of the opponent, which could be waiting or moving.
+        """
         if self.current_action_index < len(self.actions):
             action, duration = self.actions[self.current_action_index]
             if action == "Wait":
                 print(f"{self.name} is waiting for {duration} turn(s).")
-                time.sleep(duration)  # Simulate waiting by sleeping
+                time.sleep(duration)
                 self.current_action_index += 1
             elif action == "Move":
                 self.move()
                 self.current_action_index += 1
 
-        # After completing all actions, reset to start over
         if self.current_action_index >= len(self.actions):
             self.current_action_index = 0
             self.prepare_next_move()
 
     def move(self):
+        """
+        Moves the opponent in the specified direction (either vertical or horizontal), 
+        adjusting direction when hitting the grid boundaries.
+        """
         if self.move_type == "vertical":
             self.y += self.move_direction
 
@@ -53,6 +75,9 @@ class Opponent:
             print(f"{self.name} moved horizontally to position ({self.x}, {self.y})")
 
     def prepare_next_move(self):
+        """
+        Prepares the next set of actions for the opponent based on their movement type.
+        """
         if self.move_type == "vertical":
             self.actions = [("Move", 1), ("Wait", 2)]
         elif self.move_type == "horizontal":
@@ -81,6 +106,18 @@ actions = [
 
 
 def fight_heuristic(state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> int:
+    """
+    Heuristic function that calculates the cost of the current state relative to the goal state 
+    for the fight scenario based on the distance and health of enemies.
+
+    Args:
+        state (Dict[str, int]): The current state of the agent.
+        goal_state (Dict[str, int]): The desired goal state.
+        context (Dict): Additional context, including information about enemies.
+
+    Returns:
+        int: The calculated heuristic cost.
+    """
     enemies = context.get("enemies", [])
     fighter_x, fighter_y = state['x'], state['y']
     total_cost = 0
@@ -98,6 +135,14 @@ def fight_heuristic(state: Dict[str, int], goal_state: Dict[str, int], context: 
 
 
 def update_fight_state(state: Dict[str, int], context: Dict):
+    """
+    Updates the agent's state to reflect the current fight scenario, including health and 
+    whether the agent is in range of enemies.
+
+    Args:
+        state (Dict[str, int]): The agent's current state.
+        context (Dict): Additional context, including information about enemies.
+    """
     enemies = context.get("enemies", [])
     fighter_x, fighter_y = state['x'], state['y']
 
@@ -118,21 +163,32 @@ def update_fight_state(state: Dict[str, int], context: Dict):
 
 
 def update_enemy_health(action: Action, state: Dict[str, int], context: Dict):
+    """
+    Updates the health of enemies based on the agent's action effects.
+
+    Args:
+        action (Action): The action executed by the agent.
+        state (Dict[str, int]): The agent's current state.
+        context (Dict): Additional context, including information about enemies.
+    """
     if action.name in ["Simple Attack", "Combo Attack", "Counter Attack"]:
         enemies = context.get("enemies", [])
         fighter_x, fighter_y = state['x'], state['y']
 
         for enemy in enemies:
             if abs(fighter_x - enemy.x) == 0 and abs(fighter_y - enemy.y) == 0 and enemy.health > 0:
-                damage = action.effects.get("damage_dealt", 0)  # Get damage from the action's effects
+                damage = action.effects.get("damage_dealt", 0)
 
-                enemy.health = max(0, enemy.health - damage)  # Ensure health doesn't drop below 0
+                enemy.health = max(0, enemy.health - damage)
 
                 if state.get("verbose", False):
                     print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
 
 
 def opponent_thread():
+    """
+    Continuously iterates over all opponents and performs their actions in a separate thread.
+    """
     while True:
         for opponent in opponents:
             opponent.perform_action()
@@ -140,6 +196,12 @@ def opponent_thread():
 
 
 def main(mode):
+    """
+    Main function to handle the fighting experiment based on the selected mode.
+
+    Args:
+        mode (str): The mode to run ('plan' to generate and display the plan, 'execute' to run the plan with opponent actions).
+    """
     goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
     fight_context = {
         "enemies": opponents,
