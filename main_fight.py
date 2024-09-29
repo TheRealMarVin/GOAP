@@ -1,4 +1,6 @@
 import argparse
+import threading
+import time
 
 from action import Action
 from agent import Agent
@@ -8,21 +10,61 @@ from typing import Dict
 
 
 class Opponent:
-    def __init__(self, name: str, x: int, y: int, health: int):
+    def __init__(self, name: str, x: int, y: int, health: int, move_type: str):
         self.name = name
         self.x = x
         self.y = y
         self.health = health
-        self.actions = [("Move", 1), ("Wait", 2), ("Simple Attack", 3)]
+        self.move_type = move_type  # "vertical" or "horizontal"
+        self.actions = [("Wait", 2)]  # Start with waiting
+        self.current_action_index = 0
+        self.move_direction = 1  # 1 for moving up/right, -1 for moving down/left
 
     def perform_action(self):
-        pass
+        if self.current_action_index < len(self.actions):
+            action, duration = self.actions[self.current_action_index]
+            if action == "Wait":
+                print(f"{self.name} is waiting for {duration} turn(s).")
+                time.sleep(duration)  # Simulate waiting by sleeping
+                self.current_action_index += 1
+            elif action == "Move":
+                self.move()
+                self.current_action_index += 1
+
+        # After completing all actions, reset to start over
+        if self.current_action_index >= len(self.actions):
+            self.current_action_index = 0
+            self.prepare_next_move()
+
+    def move(self):
+        if self.move_type == "vertical":
+            self.y += self.move_direction
+
+            if self.y > 9 or self.y < 0:
+                self.move_direction *= -1
+                self.y += self.move_direction
+            print(f"{self.name} moved vertically to position ({self.x}, {self.y})")
+
+        elif self.move_type == "horizontal":
+            self.x += self.move_direction
+            if self.x > 9 or self.x < 0:
+                self.move_direction *= -1
+                self.x += self.move_direction
+            print(f"{self.name} moved horizontally to position ({self.x}, {self.y})")
+
+    def prepare_next_move(self):
+        if self.move_type == "vertical":
+            self.actions = [("Move", 1), ("Wait", 2)]
+        elif self.move_type == "horizontal":
+            self.actions = [("Move", 1), ("Wait", 2)]
+        self.current_action_index = 0
 
 
 opponents = [
-    Opponent("Opponent1", 2, 0, 50),
-    Opponent("Opponent2", 4, 1, 100)
+    Opponent("Opponent1", 2, 0, 50, move_type="vertical"),
+    Opponent("Opponent2", 4, 1, 100, move_type="horizontal")
 ]
+
 
 actions = [
     Action("Move Up", {"stamina": 1}, {"y": +1, "stamina": -1}, duration=1, cost=1),
@@ -90,15 +132,23 @@ def update_enemy_health(action: Action, state: Dict[str, int], context: Dict):
                     print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
 
 
+def opponent_thread():
+    while True:
+        for opponent in opponents:
+            opponent.perform_action()
+            time.sleep(1)
+
+
 def main(mode):
+    goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
     fight_context = {
         "enemies": opponents,
         "update_state_callback": update_fight_state,
         "post_action_callback": update_enemy_health,
+        "goal_state": goal_state
     }
 
     fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
-    goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
 
     planner = GOAPPlanner(actions, heuristic=fight_heuristic)
     plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
@@ -106,6 +156,9 @@ def main(mode):
     if mode == "plan":
         print(f"Generated Plan: {plan} with total cost: {total_cost}")
         return
+
+    opponent_thread_obj = threading.Thread(target=opponent_thread, daemon=True)
+    opponent_thread_obj.start()
 
     event_manager = EventManager()
     fighter = Agent(actions, planner, event_manager, verbose=True)
