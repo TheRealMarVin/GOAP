@@ -40,15 +40,16 @@ class Opponent:
         """
         Executes the current action of the opponent, which could be waiting or moving.
         """
-        if self.current_action_index < len(self.actions):
-            action, duration = self.actions[self.current_action_index]
-            if action == "Wait":
-                print(f"{self.name} is waiting for {duration} turn(s).")
-                time.sleep(duration)
-                self.current_action_index += 1
-            elif action == "Move":
-                self.move()
-                self.current_action_index += 1
+        if self.health > 0:
+            if self.current_action_index < len(self.actions):
+                action, duration = self.actions[self.current_action_index]
+                if action == "Wait":
+                    print(f"{self.name} is waiting for {duration} turn(s).")
+                    time.sleep(duration)
+                    self.current_action_index += 1
+                elif action == "Move":
+                    self.move()
+                    self.current_action_index += 1
 
         if self.current_action_index >= len(self.actions):
             self.current_action_index = 0
@@ -182,7 +183,10 @@ def update_enemy_health(action: Action, state: Dict[str, int], context: Dict):
                 enemy.health = max(0, enemy.health - damage)
 
                 if state.get("verbose", False):
-                    print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
+                    if enemy.health > 0:
+                        print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
+                    else:
+                        print(f"{enemy.name} is dead!")
 
 
 def opponent_thread():
