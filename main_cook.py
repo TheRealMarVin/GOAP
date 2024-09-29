@@ -13,7 +13,6 @@ actions = [
 ]
 
 
-
 def main(mode):
     initial_state = {"wood": 0, "fire": 0, "cooked_food": 0}
     goal_state = {"cooked_food": 1}
