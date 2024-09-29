@@ -1,3 +1,9 @@
+"""
+This script sets up and runs a cooking experiment using the GOAP (Goal-Oriented Action Planning) system.
+It allows the user to run the experiment in two modes: 'plan' (generates and displays the plan)
+and 'execute' (executes the plan with dynamic updates via an event thread).
+"""
+
 import argparse
 import threading
 import time
@@ -14,6 +20,12 @@ actions = [
 
 
 def main(mode):
+    """
+    Main function to handle the cooking experiment based on the selected mode.
+
+    Args:
+        mode (str): The mode to run ('plan' to generate and display the plan, 'execute' to run the plan with dynamic events).
+    """
     initial_state = {"wood": 0, "fire": 0, "cooked_food": 0}
     goal_state = {"cooked_food": 1}
 
@@ -29,6 +41,9 @@ def main(mode):
     event_manager = EventManager()
 
     def event_thread():
+        """
+        Simulates dynamic events by periodically publishing events through the event manager.
+        """
         while True:
             time.sleep(5)
             event_manager.publish_event()
