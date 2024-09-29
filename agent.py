@@ -32,6 +32,9 @@ class Agent:
             action_name = plan.pop(0)
             action = next((a for a in self.actions if a.name == action_name), None)
 
+            if "update_state_callback" in context:
+                context["update_state_callback"](current_state, context)
+
             if not action or not action.execute(current_state, on_interrupt=lambda: self.should_replan,
                                                 verbose=self.verbose):
                 self.should_replan = False
