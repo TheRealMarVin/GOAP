@@ -65,8 +65,6 @@ class Agent:
             action = next((a for a in self.actions if a.name == action_name), None)
 
             plan_depth += 1
-            if "update_state_callback" in context:
-                context["update_state_callback"](current_state, context)
 
             if not action or not action.execute(current_state, on_interrupt=lambda: self.should_replan,
                                                 verbose=self.verbose):
@@ -89,14 +87,33 @@ class Agent:
             if "post_action_callback" in context:
                 context["post_action_callback"](action, current_state, context)
 
+            if "update_state_callback" in context:
+                context["update_state_callback"](current_state, context)
+
             if self.verbose:
                 print(f"Updated state after action {action_name}: {current_state}")
 
             goal_state = context.get("goal_state", {})
-            if all(current_state.get(k, 0) == v for k, v in goal_state.items()):
+            goal_achieved = all(current_state.get(k, 0) == v for k, v in goal_state.items())
+            if goal_achieved:
                 if self.verbose:
                     print("Goal achieved!")
                 break
+
+            if len(plan) == 0 and not goal_achieved:
+                if self.verbose:
+                    print(f"Enf of plan reached, but goal not achieved. Replanning...")
+
+                plan_depths.append(plan_depth)
+                plan_depth = 0
+                new_plan, _ = self.planner.plan(current_state, context.get("goal_state", {}), context)
+                if not new_plan:
+                    if self.verbose:
+                        print("No valid plan could be found during replanning!")
+                    return
+
+                plan = new_plan
+                continue
 
         plan_depths.append(plan_depth)
         if self.verbose:
