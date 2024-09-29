@@ -182,7 +182,7 @@ def update_enemy_health(action: Action, state: Dict[str, int], context: Dict):
 
                 enemy.health = max(0, enemy.health - damage)
 
-                if state.get("verbose", False):
+                if context.get("verbose", False):
                     if enemy.health > 0:
                         print(f"{enemy.name} took {damage} damage! Remaining health: {enemy.health}")
                     else:
@@ -211,7 +211,8 @@ def main(mode):
         "enemies": opponents,
         "update_state_callback": update_fight_state,
         "post_action_callback": update_enemy_health,
-        "goal_state": goal_state
+        "goal_state": goal_state,
+        "verbose": True
     }
 
     fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
