@@ -54,6 +54,7 @@ def main(mode):
     event_thread_obj.start()
 
     agent.execute_plan(initial_state, plan, {"goal_state": goal_state})
+    planner.display_usage_stats()
 
 
 if __name__ == "__main__":

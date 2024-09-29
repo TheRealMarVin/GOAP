@@ -225,6 +225,7 @@ def main(mode):
     event_manager = EventManager()
     fighter = Agent(actions, planner, event_manager, verbose=True)
     fighter.execute_plan(fighter_initial_state, plan, fight_context)
+    planner.display_usage_stats()
 
 
 if __name__ == "__main__":

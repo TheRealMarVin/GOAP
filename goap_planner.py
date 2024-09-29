@@ -21,6 +21,9 @@ class GOAPPlanner:
         """
         self.actions = actions
         self.heuristic = heuristic
+        self.plan_requested = 0
+        self.node_developed = 0
+        self.action_tested = 0
 
     def plan(self, start_state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> Tuple[List[str], int]:
         """
@@ -34,6 +37,7 @@ class GOAPPlanner:
         Returns:
             Tuple[List[str], int]: A tuple containing the list of actions in the plan and the total cost of the plan.
         """
+        self.plan_requested += 1
         frontier = []
 
         updated_start_state = start_state.copy()
@@ -45,6 +49,7 @@ class GOAPPlanner:
         explored = set()
 
         while frontier:
+            self.node_developed += 1
             _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
             current_state = dict(current_state_tuple)
 
@@ -58,6 +63,7 @@ class GOAPPlanner:
             for action in self.actions:
                 if action.is_applicable(current_state):
                     new_state = current_state.copy()
+                    self.action_tested += 1
                     for k, v in action.effects.items():
                         new_state[k] = new_state.get(k, 0) + v
 
@@ -76,6 +82,17 @@ class GOAPPlanner:
                     heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
+
+    def display_usage_stats(self):
+        """
+        Display usage of the planner. We can see the number of plan requested. We see how many
+        nodes are developed. These nodes are considered nodes of interest that should be
+        explored. Finally, action tested are all the action we updated the stated and added
+        to the list of potential nodes.
+        """
+        print("Plan Requested: ", self.plan_requested)
+        print("Node Developed: ", self.node_developed)
+        print("Action Tested: ", self.action_tested)
 
     @staticmethod
     def _state_to_tuple(state: Dict[str, int]) -> Tuple[Tuple[str, int], ...]:
