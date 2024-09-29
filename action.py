@@ -51,6 +51,10 @@ class Action:
         Returns:
             bool: True if the action completes successfully, False if it was interrupted.
         """
+        if not self.is_applicable(state):
+            print(f"Preconditions for action {self.name} are not met.")
+            return False
+
         if verbose:
             print(f"Starting action: {self.name} (duration: {self.duration}s)")
 

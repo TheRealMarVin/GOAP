@@ -51,6 +51,9 @@ class Agent:
         if context is None:
             context = {}
 
+        plan_depth = 0
+        plan_depths = []
+
         current_state = initial_state.copy()
 
         while plan:
@@ -61,21 +64,9 @@ class Agent:
             action_name = plan.pop(0)
             action = next((a for a in self.actions if a.name == action_name), None)
 
+            plan_depth += 1
             if "update_state_callback" in context:
                 context["update_state_callback"](current_state, context)
-
-            if not action or not action.is_applicable(current_state):
-                self.should_replan = True
-                if self.verbose:
-                    print(f"Preconditions for action {action_name} are not met. Replanning...")
-
-                new_plan, _ = self.planner.plan(current_state, context.get("goal_state", {}), context)
-                if not new_plan:
-                    if self.verbose:
-                        print("No valid plan could be found during replanning!")
-                    return
-                plan = new_plan
-                continue
 
             if not action or not action.execute(current_state, on_interrupt=lambda: self.should_replan,
                                                 verbose=self.verbose):
@@ -84,6 +75,8 @@ class Agent:
                 if self.verbose:
                     print(f"Action {action_name} failed or interrupted. Replanning...")
 
+                plan_depths.append(plan_depth)
+                plan_depth = 0
                 new_plan, _ = self.planner.plan(current_state, context.get("goal_state", {}), context)
                 if not new_plan:
                     if self.verbose:
@@ -105,5 +98,7 @@ class Agent:
                     print("Goal achieved!")
                 break
 
+        plan_depths.append(plan_depth)
         if self.verbose:
             print(f"Final State: {current_state}")
+            print("Average action executed before replan: ", sum(plan_depths) / len(plan_depths))
