@@ -72,6 +72,25 @@ Sit back, relax, and enjoy as your NPCs plan their next move in a world filled w
 
 ---
 
+## 🤔 NAQ (Never Asked Questions)
+
+### ❓ Can I use your code in my project?
+**Answer:** Yes, as long as you’re respecting the license. However, keep in mind that this project is really just an exploration of GOAP and a test of its limits. The implementation is pretty barebones, and you might need more features in your project. Also, the code isn't exactly what you'd call "clean," but it works for my needs (aka duct-tape level functionality).
+
+### ❓ Do you support interrupting plans?
+**Answer:** Yes! There are two ways to interrupt a plan. First, there’s an event handler that can stop an action before it’s complete. In this case, the state doesn't update, and we replan from where the action started (not the most perfect behavior, but hey, it’s something!). The second way is that we check preconditions before executing an action. If they’re not valid, we ask for replanning like an over-caffeinated project manager.
+
+### ❓ Your code is missing so and so…
+**Answer:** You’re probably right. 😅
+
+### ❓ Hey, I saw your code and I want to use it in my game of Go, can you help me?
+**Answer:** Oh, I hate to break it to you, but this probably isn’t the right approach to solve your Go game problem. Why? Well, GOAP is more about planning in a fairly static environment, not dealing with the deep complexities of ancient board games. It doesn't handle turn-based planning or high-dimensional strategy all that well. You might want to try something like Monte Carlo Tree Search or even Minimax instead!
+
+*Also, a side note: GOAP isn't great for situations where there's an agent actively opposing you, especially when it requires long-term planning. It tends to get... a bit confused when someone’s messing up its plans!*
+
+
+---
+
 ## 🤖 Acknowledgements
 
 Some of the text in this README and portions of the example code were enhanced with the help of **ChatGPT**, which was used to make everything sound way cooler and help clarify some of the GOAP implementation details. 🎉
