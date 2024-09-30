@@ -22,6 +22,15 @@ This is a GOAP crash course (at least for me), designed to help you dive headfir
 
 With this foundational setup, you'll be ready to start building more complex behaviors, like NPCs that can navigate chaotic environments, handle unexpected events, or even develop a love for firewood gathering (hey, we don’t judge their hobbies!).
 
+### 🍳 Cooking Task Goal
+The goal of the cooking task is to collect ingredients, prepare meals, and cook a delicious dish within a virtual environment. Our GOAP agent will plan actions such as gathering ingredients, starting a fire, or waiting for the food to cook. The objective is to achieve a cooked meal while managing limited resources like time and ingredients.
+
+### ⚔️ Fighting Task Goal
+In the fighting task, our agent aims to eliminate all enemies in the environment. During execution, the agent moves strategically to get into range of enemies and waits for the right moment to strike. The agent must manage stamina and health, positioning itself carefully while anticipating attacks and delivering blows when the opportunity arises.
+
+The ultimate goal is to defeat all enemies that are moving to improve survival. There are two agents: one moves horizontally back and forth across the grid, while the other moves vertically.
+
+
 ---
 
 ## 📦 Installation & Requirements
@@ -42,6 +51,23 @@ Because we believe in simplicity, this should be a breeze. You can run the whole
 ```bash
 python main_cook.py
 ```
+To start the magic, you have two options: either the Cooking Task or the Fighting Task.
+
+#### Cooking Task
+```bash
+python main_cook.py --mode plan --heuristic enabled
+```
+Parameters:
+- mode: Choose between plan (to generate and display the plan) and execute (to execute the plan).
+- heuristic: enabled or disabled to choose whether to use the heuristic in planning.
+
+#### Fighting Task
+```bash
+python main_fight.py --mode plan --heuristic enabled
+```
+Parameters:
+- mode: Similar to the cooking task, choose between plan and execute.
+- heuristic: enabled or disabled for heuristic planning.
 Sit back, relax, and enjoy as your NPCs plan their next move in a world filled with virtual dilemmas and questionable choices. Who knows? Maybe they’ll even succeed!
 
 ---
