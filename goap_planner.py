@@ -74,7 +74,10 @@ class GOAPPlanner:
                     new_cost = current_cost + action.cost
                     new_elapsed_time = elapsed_time + action.duration
 
-                    h = self.heuristic(new_state, goal_state, context)
+                    h = 0
+                    if self.heuristic is not None:
+                        h = self.heuristic(new_state, goal_state, context)
+
                     priority = new_cost + h
                     if priority == float('inf'):
                         raise Exception("infinite weight. Something is wrong")
