@@ -199,12 +199,13 @@ def opponent_thread():
             time.sleep(1)
 
 
-def main(mode):
+def main(mode, use_heuristic):
     """
     Main function to handle the fighting experiment based on the selected mode.
 
     Args:
         mode (str): The mode to run ('plan' to generate and display the plan, 'execute' to run the plan with opponent actions).
+        use_heuristic (str): 'enabled' to enable the use of heuristic to generate the plan, 'disabled' to not use it.
     """
     goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
     fight_context = {
@@ -217,7 +218,10 @@ def main(mode):
 
     fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
 
-    planner = GOAPPlanner(actions, heuristic=fight_heuristic)
+    heuristic = None
+    if use_heuristic == "enabled":
+        heuristic = fight_heuristic
+    planner = GOAPPlanner(actions, heuristic=heuristic)
     plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
 
     if mode == "plan":
@@ -237,6 +241,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fighting Experiment")
     parser.add_argument("--mode", choices=["plan", "execute"], default="plan",
                         help="Choose whether to plan or execute the experiment")
+    parser.add_argument("--heuristic", choices=["enabled", "disabled"], default="enabled",
+                        help="Choose whether to enable heuristic or not.")
     args = parser.parse_args()
 
-    main(args.mode)
+    main(args.mode, args.heuristic)
