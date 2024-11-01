@@ -5,7 +5,7 @@ of actions to reach a specified goal state from a start state.
 """
 
 import heapq
-from typing import List, Dict, Tuple, Callable
+from typing import List, Dict, Tuple, Callable, Union
 from action import Action
 
 
@@ -25,13 +25,14 @@ class GOAPPlanner:
         self.node_developed = 0
         self.action_tested = 0
 
-    def plan(self, start_state: Dict[str, int], goal_state: Dict[str, int], context: Dict) -> Tuple[List[str], int]:
+    def plan(self, start_state: Dict[str, int], goal_state: Union[Dict[str, int], List[Dict[str, int]]],
+             context: Dict) -> Tuple[List[str], int]:
         """
-        Generates a plan to reach the goal state from the start state using the GOAP approach.
+        Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
         Args:
             start_state (Dict[str, int]): The initial state of the agent.
-            goal_state (Dict[str, int]): The desired goal state.
+            goal_state (Union[Dict[str, int], List[Dict[str, int]]]): The desired goal state(s).
             context (Dict): Additional context, including callbacks for state updates and environment information.
 
         Returns:
@@ -48,41 +49,45 @@ class GOAPPlanner:
 
         explored = set()
 
-        while frontier:
-            self.node_developed += 1
-            _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
-            current_state = dict(current_state_tuple)
+        if isinstance(goal_state, dict):
+            goal_state = [goal_state]
 
-            if all(current_state.get(k, 0) == v for k, v in goal_state.items()):
-                return plan, current_cost
+        for goal in goal_state:
+            while frontier:
+                self.node_developed += 1
+                _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
+                current_state = dict(current_state_tuple)
 
-            if current_state_tuple in explored:
-                continue
-            explored.add(current_state_tuple)
+                if all(current_state.get(k, 0) == v for k, v in goal.items()):
+                    return plan, current_cost
 
-            for action in self.actions:
-                if action.is_applicable(current_state):
-                    new_state = current_state.copy()
-                    self.action_tested += 1
-                    for k, v in action.effects.items():
-                        new_state[k] = new_state.get(k, 0) + v
+                if current_state_tuple in explored:
+                    continue
+                explored.add(current_state_tuple)
 
-                    if "update_state_callback" in context:
-                        context["update_state_callback"](new_state, context)
+                for action in self.actions:
+                    if action.is_applicable(current_state):
+                        new_state = current_state.copy()
+                        self.action_tested += 1
+                        for k, v in action.effects.items():
+                            new_state[k] = new_state.get(k, 0) + v
 
-                    new_plan = plan + [action.name]
-                    new_cost = current_cost + action.cost
-                    new_elapsed_time = elapsed_time + action.duration
+                        if "update_state_callback" in context:
+                            context["update_state_callback"](new_state, context)
 
-                    h = 0
-                    if self.heuristic is not None:
-                        h = self.heuristic(new_state, goal_state, context)
+                        new_plan = plan + [action.name]
+                        new_cost = current_cost + action.cost
+                        new_elapsed_time = elapsed_time + action.duration
 
-                    priority = new_cost + h
-                    if priority == float('inf'):
-                        raise Exception("infinite weight. Something is wrong")
+                        h = 0
+                        if self.heuristic is not None:
+                            h = self.heuristic(new_state, goal, context)
 
-                    heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
+                        priority = new_cost + h
+                        if priority == float('inf'):
+                            raise Exception("infinite weight. Something is wrong")
+
+                        heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
 
