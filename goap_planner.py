@@ -25,14 +25,14 @@ class GOAPPlanner:
         self.node_developed = 0
         self.action_tested = 0
 
-    def plan(self, start_state: Dict[str, int], goal_state: Union[Dict[str, int], List[Dict[str, int]]],
+    def plan(self, start_state: Dict[str, int], goal_states: Union[Dict[str, int], List[Dict[str, int]]],
              context: Dict) -> Tuple[List[str], int]:
         """
         Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
         Args:
             start_state (Dict[str, int]): The initial state of the agent.
-            goal_state (Union[Dict[str, int], List[Dict[str, int]]]): The desired goal state(s).
+            goal_states (Union[Dict[str, int], List[Dict[str, int]]]): The desired goal state(s).
             context (Dict): Additional context, including callbacks for state updates and environment information.
 
         Returns:
@@ -49,10 +49,10 @@ class GOAPPlanner:
 
         explored = set()
 
-        if isinstance(goal_state, dict):
-            goal_state = [goal_state]
+        if isinstance(goal_states, dict):
+            goal_states = [goal_states]
 
-        for goal in goal_state:
+        for goal in goal_states:
             while frontier:
                 self.node_developed += 1
                 _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
