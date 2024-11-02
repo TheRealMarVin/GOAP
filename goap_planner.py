@@ -9,11 +9,12 @@ from enum import Enum
 from typing import List, Dict, Tuple, Union
 from action import Action
 from goal import Goal
+from helpers import is_goal_satisfied
 
 
 class PlanningMode(Enum):
     SEQUENTIAL = 1
-    PARALLEL = 2
+    GLOBAL = 2
 
 class PlanProgress:
     def __init__(self, current_cost: float, current_state_tuple: Dict, plan: List, elapsed_time: float):
@@ -65,8 +66,8 @@ class GOAPPlanner:
             goals = [goals]
 
         self.plan_requested += 1
-        if mode == PlanningMode.PARALLEL:
-            return self._plan_parallel(goals, start_state, context)
+        if mode == PlanningMode.GLOBAL:
+            return self._plan_global(goals, start_state, context)
         return self._plan_sequential(goals, start_state, context)
 
     @staticmethod
@@ -85,7 +86,6 @@ class GOAPPlanner:
             initial_progress = PlanProgress(0, self._state_to_tuple(updated_start_state), [], 0)
             heapq.heappush(frontier, (0, initial_progress))
 
-            goal = goal_info.goal_state
             heuristic = goal_info.heuristic
 
             while frontier:
@@ -93,7 +93,7 @@ class GOAPPlanner:
                 _, progress = heapq.heappop(frontier)
                 current_state = dict(progress.current_state_tuple)
 
-                if all(current_state.get(k, 0) == v for k, v in goal.items()):
+                if is_goal_satisfied(goal_info, current_state):
                     return progress.plan, progress.current_cost
 
                 if progress.current_state_tuple in explored:
@@ -116,7 +116,7 @@ class GOAPPlanner:
 
                         h = 0
                         if heuristic is not None:
-                            h = heuristic(new_state, goal, context)
+                            h = heuristic(new_state, goal_info.goal_state, context)
 
                         priority = new_cost + h
                         if priority == float('inf'):
@@ -127,7 +127,51 @@ class GOAPPlanner:
 
         return [], float('inf')
 
-    def _plan_parallel(self, goals, initial_state, context):
+    def _plan_global(self, goals, initial_state, context):
+        updated_start_state = self._update_initial_state(initial_state, context)
+
+        explored = set()
+        frontier = []
+        initial_progress = PlanProgress(0, self._state_to_tuple(updated_start_state), [], 0)
+        heapq.heappush(frontier, (0, initial_progress))
+
+        while frontier:
+            self.node_developed += 1
+            _, progress = heapq.heappop(frontier)
+            current_state = dict(progress.current_state_tuple)
+
+            if all(current_state.get(k, 0) == v for k, v in goal.items()):
+                return progress.plan, progress.current_cost
+
+            if progress.current_state_tuple in explored:
+                continue
+            explored.add(progress.current_state_tuple)
+
+            for action in self.actions:
+                if action.is_applicable(current_state):
+                    new_state = current_state.copy()
+                    self.action_tested += 1
+                    for k, v in action.effects.items():
+                        new_state[k] = new_state.get(k, 0) + v
+
+                    if "update_state_callback" in context:
+                        context["update_state_callback"](new_state, context)
+
+                    new_plan = progress.plan + [action.name]
+                    new_cost = progress.current_cost + action.cost
+                    new_elapsed_time = progress.elapsed_time + action.duration
+
+                    h = 0
+                    if heuristic is not None:
+                        h = heuristic(new_state, goal, context)
+
+                    priority = new_cost + h
+                    if priority == float('inf'):
+                        raise Exception("infinite weight. Something is wrong")
+
+                    new_progress = PlanProgress(new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time)
+                    heapq.heappush(frontier, (priority, new_progress))
+
         return [], float('inf')
 
     def display_usage_stats(self):
