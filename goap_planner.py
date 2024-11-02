@@ -5,9 +5,15 @@ of actions to reach a specified goal state from a start state.
 """
 
 import heapq
-from typing import List, Dict, Tuple, Callable, Union
+from enum import Enum
+from typing import List, Dict, Tuple, Union
 from action import Action
 from goal import Goal
+
+
+class PlanningMode(Enum):
+    SEQUENTIAL = 1
+    PARALLEL = 2
 
 
 class GOAPPlanner:
@@ -38,22 +44,23 @@ class GOAPPlanner:
         """
         if goals is None:
             return [], float('inf')
+        elif isinstance(goals, Goal):
+            goals = [goals]
 
         self.plan_requested += 1
-        frontier = []
 
         updated_start_state = start_state.copy()
         if "update_state_callback" in context:
             context["update_state_callback"](updated_start_state, context)
 
-        heapq.heappush(frontier, (0, 0, self._state_to_tuple(updated_start_state), [], 0))
+        return self._plan_sequential(goals, updated_start_state, context)
 
-        explored = set()
-
-        if isinstance(goals, Goal):
-            goals = [goals]
-
+    def _plan_sequential(self, goals, initial_state, context):
         for goal_info in goals:
+            explored = set()
+            frontier = []
+            heapq.heappush(frontier, (0, 0, self._state_to_tuple(initial_state), [], 0))
+
             goal = goal_info.goal_state
             heuristic = goal_info.heuristic
 
@@ -92,9 +99,12 @@ class GOAPPlanner:
                             raise Exception("infinite weight. Something is wrong")
 
                         heapq.heappush(frontier, (
-                        priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
+                            priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
+
+    def _plan_parallel(self):
+        pass
 
     def display_usage_stats(self):
         """
