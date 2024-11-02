@@ -15,5 +15,15 @@ class Goal:
         self.heuristic = heuristic
 
     def is_goal_achieved(self, current_state):
+        """
+            Checks if the goal state has been achieved given the current state.
+
+            Args:
+                current_state (Dict): The current state of the agent as a dictionary where keys are state variables
+                                      and values are their respective values.
+
+            Returns:
+                bool: True if all conditions in the goal state match a goal, False otherwise.
+            """
         goal_achieved = all(current_state.get(k, 0) == v for k, v in self.goal_state.items())
         return goal_achieved
