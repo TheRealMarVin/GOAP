@@ -34,20 +34,22 @@ class PlanProgress:
 
 
 class GOAPPlanner:
-    def __init__(self, actions: List[Action]):
+    def __init__(self, actions: List[Action], max_depth: int=20):
         """
         Initializes the GOAPPlanner with a list of possible actions.
 
         Args:
             actions (List[Action]): A list of possible actions the agent can perform.
+            max_depth (int): Max possible depth for the planner to reach
         """
         self.actions = actions
+        self.max_depth = max_depth
         self.plan_requested = 0
         self.node_developed = 0
         self.action_tested = 0
 
     def plan(self, start_state: Dict[str, int], goals: Union[List[Goal], Goal],
-             context: Dict, mode: PlanningMode =PlanningMode.SEQUENTIAL) -> Tuple[List[str], float]:
+             context: Dict, mode: PlanningMode =PlanningMode.GLOBAL) -> Tuple[List[str], float]:
         """
         Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
@@ -97,6 +99,9 @@ class GOAPPlanner:
         while frontier:
             self.node_developed += 1
             _, progress = heapq.heappop(frontier)
+            if len(progress.plan) >= self.max_depth:
+                continue
+
             current_state = dict(progress.current_state_tuple)
 
             if is_goal_satisfied(goals, current_state):
