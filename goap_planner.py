@@ -18,12 +18,31 @@ class PlanningMode(Enum):
 
 class PlanProgress:
     def __init__(self, current_cost: float, current_state_tuple: Dict, plan: List, elapsed_time: float):
+        """
+        Initializes the PlanProgress instance, representing the progress of a plan.
+
+        Args:
+            current_cost (float): The accumulated cost of actions in the plan.
+            current_state_tuple (Dict): A hashable representation of the current state.
+            plan (List): A list of actions taken so far.
+            elapsed_time (float): The total time elapsed during the execution of the plan.
+        """
         self.current_cost = current_cost
         self.current_state_tuple = current_state_tuple
         self.plan = plan
         self.elapsed_time = elapsed_time
 
     def __lt__(self, other):
+        """
+        Compares two PlanProgress instances for sorting, prioritizing lower cost,
+        then lower elapsed time, and finally shorter plans.
+
+        Args:
+            other (PlanProgress): Another PlanProgress instance to compare.
+
+        Returns:
+            bool: True if this instance should come before the other in sorting order.
+        """
         if self.current_cost != other.current_cost:
             return self.current_cost < other.current_cost
 
@@ -75,12 +94,34 @@ class GOAPPlanner:
 
     @staticmethod
     def _update_initial_state(initial_state, context):
+        """
+        Updates the initial state using a callback from the context, if provided.
+
+        Args:
+            initial_state (Dict): The initial state dictionary to update.
+            context (Dict): Context dictionary containing callbacks for updates.
+
+        Returns:
+            Dict: The updated start state.
+        """
         updated_start_state = initial_state.copy()
         if "update_state_callback" in context:
             context["update_state_callback"](updated_start_state, context)
         return updated_start_state
 
     def _plan_sequential(self, goals, initial_state, context):
+        """
+        Generates a plan by sequentially attempting to satisfy each goal in order. This
+        is a special case where we want to process one goal after the other.
+
+        Args:
+            goals (List[Goal]): A list of goals with associated goal states and heuristics.
+            initial_state (Dict): The starting state for the planner.
+            context (Dict): Context dictionary for callbacks and additional information.
+
+        Returns:
+           Tuple[List[str], float]: A tuple containing the plan and its total cost.
+        """
         for goal_info in goals:
             plan, cost = self._plan_global([goal_info], initial_state, context)
             if len(plan) > 0:
@@ -89,6 +130,19 @@ class GOAPPlanner:
         return [], float('inf')
 
     def _plan_global(self, goals, initial_state, context):
+        """
+        Generates a global plan for the provided goals from the initial state.
+        This will try to expand all the plans at the same time and return as
+        soon as one plan is satisfied.
+
+        Args:
+            goals (List[Goal]): A list of goals with associated goal states and heuristics.
+            initial_state (Dict): The starting state for the planner.
+            context (Dict): Context dictionary for callbacks and additional information.
+
+        Returns:
+            Tuple[List[str], float]: A tuple containing the list of actions in the plan and the total cost.
+        """
         updated_start_state = self._update_initial_state(initial_state, context)
 
         explored = set()
