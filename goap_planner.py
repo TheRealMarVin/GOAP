@@ -47,7 +47,7 @@ class GOAPPlanner:
         self.action_tested = 0
 
     def plan(self, start_state: Dict[str, int], goals: Union[List[Goal], Goal],
-             context: Dict, mode: PlanningMode =PlanningMode.SEQUENTIAL) -> Tuple[List[str], float]:
+             context: Dict, mode: PlanningMode =PlanningMode.GLOBAL) -> Tuple[List[str], float]:
         """
         Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
@@ -55,7 +55,7 @@ class GOAPPlanner:
             start_state (Dict[str, int]): The initial state of the agent.
             goals (Union[List[Goal], Goal]): A list of goals, each containing a goal state and an associated heuristic function.
             context (Dict): Additional context, including callbacks for state updates and environment information.
-            mode (PlanningMode): Type of planning mode to handle multi goals. Default Sequential mode.
+            mode (PlanningMode): Type of planning mode to handle multi goals. Default Global mode.
 
         Returns:
             Tuple[List[str], float]: A tuple containing the list of actions in the plan and the total cost of the plan.
@@ -66,9 +66,10 @@ class GOAPPlanner:
             goals = [goals]
 
         self.plan_requested += 1
-        if mode == PlanningMode.GLOBAL:
-            return self._plan_global(goals, start_state, context)
-        return self._plan_sequential(goals, start_state, context)
+        if mode == PlanningMode.SEQUENTIAL:
+            return self._plan_sequential(goals, start_state, context)
+
+        return self._plan_global(goals, start_state, context)
 
     @staticmethod
     def _update_initial_state(initial_state, context):
@@ -140,7 +141,7 @@ class GOAPPlanner:
             _, progress = heapq.heappop(frontier)
             current_state = dict(progress.current_state_tuple)
 
-            if all(current_state.get(k, 0) == v for k, v in goal.items()):
+            if is_goal_satisfied(goals, current_state):
                 return progress.plan, progress.current_cost
 
             if progress.current_state_tuple in explored:
@@ -161,16 +162,17 @@ class GOAPPlanner:
                     new_cost = progress.current_cost + action.cost
                     new_elapsed_time = progress.elapsed_time + action.duration
 
-                    h = 0
-                    if heuristic is not None:
-                        h = heuristic(new_state, goal, context)
+                    for goal_info in goals:
+                        h = 0
+                        if goal_info.heuristic is not None:
+                            h = goal_info.heuristic(new_state, goal_info.goal_state, context)
 
-                    priority = new_cost + h
-                    if priority == float('inf'):
-                        raise Exception("infinite weight. Something is wrong")
+                        priority = new_cost + h
+                        if priority == float('inf'):
+                            raise Exception("infinite weight. Something is wrong")
 
-                    new_progress = PlanProgress(new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time)
-                    heapq.heappush(frontier, (priority, new_progress))
+                        new_progress = PlanProgress(new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time)
+                        heapq.heappush(frontier, (priority, new_progress))
 
         return [], float('inf')
 
