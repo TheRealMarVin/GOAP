@@ -15,6 +15,22 @@ class PlanningMode(Enum):
     SEQUENTIAL = 1
     PARALLEL = 2
 
+class PlanProgress:
+    def __init__(self, current_cost: float, current_state_tuple: Dict, plan: List, elapsed_time: float):
+        self.current_cost = current_cost
+        self.current_state_tuple = current_state_tuple
+        self.plan = plan
+        self.elapsed_time = elapsed_time
+
+    def __lt__(self, other):
+        if self.current_cost != other.current_cost:
+            return self.current_cost < other.current_cost
+
+        if self.elapsed_time != other.elapsed_time:
+            return self.elapsed_time < other.elapsed_time
+
+        return len(self.plan) < len(other.plan)
+
 
 class GOAPPlanner:
     def __init__(self, actions: List[Action]):
@@ -30,7 +46,7 @@ class GOAPPlanner:
         self.action_tested = 0
 
     def plan(self, start_state: Dict[str, int], goals: Union[List[Goal], Goal],
-             context: Dict) -> Tuple[List[str], int]:
+             context: Dict, mode: PlanningMode =PlanningMode.SEQUENTIAL) -> Tuple[List[str], float]:
         """
         Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
@@ -38,9 +54,10 @@ class GOAPPlanner:
             start_state (Dict[str, int]): The initial state of the agent.
             goals (Union[List[Goal], Goal]): A list of goals, each containing a goal state and an associated heuristic function.
             context (Dict): Additional context, including callbacks for state updates and environment information.
+            mode (PlanningMode): Type of planning mode to handle multi goals. Default Sequential mode.
 
         Returns:
-            Tuple[List[str], int]: A tuple containing the list of actions in the plan and the total cost of the plan.
+            Tuple[List[str], float]: A tuple containing the list of actions in the plan and the total cost of the plan.
         """
         if goals is None:
             return [], float('inf')
@@ -48,33 +65,40 @@ class GOAPPlanner:
             goals = [goals]
 
         self.plan_requested += 1
-
+        if mode == PlanningMode.PARALLEL:
+            return self._plan_parallel(goals, start_state, context)
         return self._plan_sequential(goals, start_state, context)
+
+    @staticmethod
+    def _update_initial_state(initial_state, context):
+        updated_start_state = initial_state.copy()
+        if "update_state_callback" in context:
+            context["update_state_callback"](updated_start_state, context)
+        return updated_start_state
 
     def _plan_sequential(self, goals, initial_state, context):
         for goal_info in goals:
-            updated_start_state = initial_state.copy()
-            if "update_state_callback" in context:
-                context["update_state_callback"](updated_start_state, context)
+            updated_start_state = self._update_initial_state(initial_state, context)
 
             explored = set()
             frontier = []
-            heapq.heappush(frontier, (0, 0, self._state_to_tuple(updated_start_state), [], 0))
+            initial_progress = PlanProgress(0, self._state_to_tuple(updated_start_state), [], 0)
+            heapq.heappush(frontier, (0, initial_progress))
 
             goal = goal_info.goal_state
             heuristic = goal_info.heuristic
 
             while frontier:
                 self.node_developed += 1
-                _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
-                current_state = dict(current_state_tuple)
+                _, progress = heapq.heappop(frontier)
+                current_state = dict(progress.current_state_tuple)
 
                 if all(current_state.get(k, 0) == v for k, v in goal.items()):
-                    return plan, current_cost
+                    return progress.plan, progress.current_cost
 
-                if current_state_tuple in explored:
+                if progress.current_state_tuple in explored:
                     continue
-                explored.add(current_state_tuple)
+                explored.add(progress.current_state_tuple)
 
                 for action in self.actions:
                     if action.is_applicable(current_state):
@@ -86,9 +110,9 @@ class GOAPPlanner:
                         if "update_state_callback" in context:
                             context["update_state_callback"](new_state, context)
 
-                        new_plan = plan + [action.name]
-                        new_cost = current_cost + action.cost
-                        new_elapsed_time = elapsed_time + action.duration
+                        new_plan = progress.plan + [action.name]
+                        new_cost = progress.current_cost + action.cost
+                        new_elapsed_time = progress.elapsed_time + action.duration
 
                         h = 0
                         if heuristic is not None:
@@ -98,57 +122,12 @@ class GOAPPlanner:
                         if priority == float('inf'):
                             raise Exception("infinite weight. Something is wrong")
 
-                        heapq.heappush(frontier, (
-                            priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
+                        new_progress = PlanProgress(new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time)
+                        heapq.heappush(frontier, (priority, new_progress))
 
         return [], float('inf')
 
-    def _plan_parallel(self):
-        for goal_info in goals:
-            explored = set()
-            frontier = []
-            heapq.heappush(frontier, (0, 0, self._state_to_tuple(initial_state), [], 0))
-
-            goal = goal_info.goal_state
-            heuristic = goal_info.heuristic
-
-            while frontier:
-                self.node_developed += 1
-                _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
-                current_state = dict(current_state_tuple)
-
-                if all(current_state.get(k, 0) == v for k, v in goal.items()):
-                    return plan, current_cost
-
-                if current_state_tuple in explored:
-                    continue
-                explored.add(current_state_tuple)
-
-                for action in self.actions:
-                    if action.is_applicable(current_state):
-                        new_state = current_state.copy()
-                        self.action_tested += 1
-                        for k, v in action.effects.items():
-                            new_state[k] = new_state.get(k, 0) + v
-
-                        if "update_state_callback" in context:
-                            context["update_state_callback"](new_state, context)
-
-                        new_plan = plan + [action.name]
-                        new_cost = current_cost + action.cost
-                        new_elapsed_time = elapsed_time + action.duration
-
-                        h = 0
-                        if heuristic is not None:
-                            h = heuristic(new_state, goal, context)
-
-                        priority = new_cost + h
-                        if priority == float('inf'):
-                            raise Exception("infinite weight. Something is wrong")
-
-                        heapq.heappush(frontier, (
-                            priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
-
+    def _plan_parallel(self, goals, initial_state, context):
         return [], float('inf')
 
     def display_usage_stats(self):
