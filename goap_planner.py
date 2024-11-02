@@ -49,13 +49,61 @@ class GOAPPlanner:
 
         self.plan_requested += 1
 
-        updated_start_state = start_state.copy()
-        if "update_state_callback" in context:
-            context["update_state_callback"](updated_start_state, context)
-
-        return self._plan_sequential(goals, updated_start_state, context)
+        return self._plan_sequential(goals, start_state, context)
 
     def _plan_sequential(self, goals, initial_state, context):
+        for goal_info in goals:
+            updated_start_state = initial_state.copy()
+            if "update_state_callback" in context:
+                context["update_state_callback"](updated_start_state, context)
+
+            explored = set()
+            frontier = []
+            heapq.heappush(frontier, (0, 0, self._state_to_tuple(updated_start_state), [], 0))
+
+            goal = goal_info.goal_state
+            heuristic = goal_info.heuristic
+
+            while frontier:
+                self.node_developed += 1
+                _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
+                current_state = dict(current_state_tuple)
+
+                if all(current_state.get(k, 0) == v for k, v in goal.items()):
+                    return plan, current_cost
+
+                if current_state_tuple in explored:
+                    continue
+                explored.add(current_state_tuple)
+
+                for action in self.actions:
+                    if action.is_applicable(current_state):
+                        new_state = current_state.copy()
+                        self.action_tested += 1
+                        for k, v in action.effects.items():
+                            new_state[k] = new_state.get(k, 0) + v
+
+                        if "update_state_callback" in context:
+                            context["update_state_callback"](new_state, context)
+
+                        new_plan = plan + [action.name]
+                        new_cost = current_cost + action.cost
+                        new_elapsed_time = elapsed_time + action.duration
+
+                        h = 0
+                        if heuristic is not None:
+                            h = heuristic(new_state, goal, context)
+
+                        priority = new_cost + h
+                        if priority == float('inf'):
+                            raise Exception("infinite weight. Something is wrong")
+
+                        heapq.heappush(frontier, (
+                            priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
+
+        return [], float('inf')
+
+    def _plan_parallel(self):
         for goal_info in goals:
             explored = set()
             frontier = []
@@ -102,9 +150,6 @@ class GOAPPlanner:
                             priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
-
-    def _plan_parallel(self):
-        pass
 
     def display_usage_stats(self):
         """
