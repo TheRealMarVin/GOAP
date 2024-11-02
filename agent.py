@@ -10,6 +10,7 @@ from action import Action
 from event_manager import EventManager
 from goal import Goal
 from goap_planner import GOAPPlanner
+from helpers import is_goal_satisfied
 
 
 class Agent:
@@ -95,15 +96,7 @@ class Agent:
                 print(f"Updated state after action {action_name}: {current_state}")
 
             goals = context.get("goals", None)
-            goal_achieved = False
-            if goals is not None:
-                if isinstance(goals, Goal):
-                    goals = [goals]
-
-                for goal in goals:
-                    if goal.is_goal_achieved(current_state):
-                        goal_achieved = True
-                        break
+            goal_achieved = is_goal_satisfied(goals, current_state)
 
             if goal_achieved:
                 if self.verbose:
