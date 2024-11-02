@@ -11,6 +11,7 @@ import time
 from action import Action
 from agent import Agent
 from event_manager import EventManager
+from goal import Goal
 from goap_planner import GOAPPlanner
 from typing import Dict
 
@@ -208,21 +209,23 @@ def main(mode, use_heuristic):
         use_heuristic (str): 'enabled' to enable the use of heuristic to generate the plan, 'disabled' to not use it.
     """
     goal_state = {f"enemy_health_{i}": 0 for i in range(len(opponents))}
+    heuristic = None
+    if use_heuristic == "enabled":
+        heuristic = fight_heuristic
+    goal = Goal(goal_state, heuristic)
+    
     fight_context = {
         "enemies": opponents,
         "update_state_callback": update_fight_state,
         "post_action_callback": update_enemy_health,
-        "goal_state": goal_state,
+        "goals": goal,
         "verbose": True
     }
 
     fighter_initial_state = {"x": 0, "y": 0, "stamina": 20, "health": 100, "blocking": 0, "in_range": 0, "damage_dealt": 0}
 
-    heuristic = None
-    if use_heuristic == "enabled":
-        heuristic = fight_heuristic
-    planner = GOAPPlanner(actions, heuristic=heuristic)
-    plan, total_cost = planner.plan(fighter_initial_state, goal_state, fight_context)
+    planner = GOAPPlanner(actions)
+    plan, total_cost = planner.plan(fighter_initial_state, goal, fight_context)
 
     if mode == "plan":
         print(f"Generated Plan: {plan} with total cost: {total_cost}")

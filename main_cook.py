@@ -10,6 +10,7 @@ import time
 from action import Action
 from agent import Agent
 from event_manager import EventManager
+from goal import Goal
 from goap_planner import GOAPPlanner
 
 actions = [
@@ -33,9 +34,10 @@ def main(mode, use_heuristic):
     heuristic = None
     if use_heuristic == "enabled":
         heuristic = lambda state, goal, context: sum(abs(state.get(k, 0) - v) for k, v in goal.items())
-    planner = GOAPPlanner(actions, heuristic=heuristic)
+    goal = Goal(goal_state, heuristic)
 
-    plan, total_cost = planner.plan(initial_state, goal_state, {})
+    planner = GOAPPlanner(actions)
+    plan, total_cost = planner.plan(initial_state, goal, {})
 
     if mode == "plan":
         print(f"Generated Plan: {plan} with total cost: {total_cost}")
@@ -56,7 +58,7 @@ def main(mode, use_heuristic):
     event_thread_obj = threading.Thread(target=event_thread, daemon=True)
     event_thread_obj.start()
 
-    agent.execute_plan(initial_state, plan, {"goal_state": goal_state})
+    agent.execute_plan(initial_state, plan, {"goals": goal})
     planner.display_usage_stats()
 
 

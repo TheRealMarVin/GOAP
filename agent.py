@@ -8,6 +8,7 @@ inapplicable due to events. It utilizes an event-driven system to adapt to chang
 from typing import List, Dict
 from action import Action
 from event_manager import EventManager
+from goal import Goal
 from goap_planner import GOAPPlanner
 
 
@@ -75,7 +76,7 @@ class Agent:
 
                 plan_depths.append(plan_depth)
                 plan_depth = 0
-                new_plan, _ = self.planner.plan(current_state, context.get("goal_state", {}), context)
+                new_plan, _ = self.planner.plan(current_state, context.get("goals", None), context)
                 if not new_plan:
                     if self.verbose:
                         print("No valid plan could be found during replanning!")
@@ -93,8 +94,17 @@ class Agent:
             if self.verbose:
                 print(f"Updated state after action {action_name}: {current_state}")
 
-            goal_state = context.get("goal_state", {})
-            goal_achieved = all(current_state.get(k, 0) == v for k, v in goal_state.items())
+            goals = context.get("goals", None)
+            goal_achieved = False
+            if goals is not None:
+                if isinstance(goals, Goal):
+                    goals = [goals]
+
+                for goal in goals:
+                    if goal.is_goal_achieved(current_state):
+                        goal_achieved = True
+                        break
+
             if goal_achieved:
                 if self.verbose:
                     print("Goal achieved!")
@@ -106,7 +116,7 @@ class Agent:
 
                 plan_depths.append(plan_depth)
                 plan_depth = 0
-                new_plan, _ = self.planner.plan(current_state, context.get("goal_state", {}), context)
+                new_plan, _ = self.planner.plan(current_state, context.get("goals", None), context)
                 if not new_plan:
                     if self.verbose:
                         print("No valid plan could be found during replanning!")

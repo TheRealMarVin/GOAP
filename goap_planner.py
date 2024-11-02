@@ -7,37 +7,38 @@ of actions to reach a specified goal state from a start state.
 import heapq
 from typing import List, Dict, Tuple, Callable, Union
 from action import Action
+from goal import Goal
 
 
 class GOAPPlanner:
-    def __init__(self, actions: List[Action], heuristic: Callable[[Dict[str, int], Dict[str, int], Dict], int]):
+    def __init__(self, actions: List[Action]):
         """
-        Initializes the GOAPPlanner with a list of possible actions and a heuristic function.
+        Initializes the GOAPPlanner with a list of possible actions.
 
         Args:
             actions (List[Action]): A list of possible actions the agent can perform.
-            heuristic (Callable[[Dict[str, int], Dict[str, int], Dict], int]):
-                A heuristic function used to estimate the cost to reach the goal from a given state.
         """
         self.actions = actions
-        self.heuristic = heuristic
         self.plan_requested = 0
         self.node_developed = 0
         self.action_tested = 0
 
-    def plan(self, start_state: Dict[str, int], goal_states: Union[Dict[str, int], List[Dict[str, int]]],
+    def plan(self, start_state: Dict[str, int], goals: Union[List[Goal], Goal],
              context: Dict) -> Tuple[List[str], int]:
         """
         Generates a plan to reach one of the goal states from the start state using the GOAP approach.
 
         Args:
             start_state (Dict[str, int]): The initial state of the agent.
-            goal_states (Union[Dict[str, int], List[Dict[str, int]]]): The desired goal state(s).
+            goals (Union[List[Goal], Goal]): A list of goals, each containing a goal state and an associated heuristic function.
             context (Dict): Additional context, including callbacks for state updates and environment information.
 
         Returns:
             Tuple[List[str], int]: A tuple containing the list of actions in the plan and the total cost of the plan.
         """
+        if goals is None:
+            return [], float('inf')
+
         self.plan_requested += 1
         frontier = []
 
@@ -49,10 +50,13 @@ class GOAPPlanner:
 
         explored = set()
 
-        if isinstance(goal_states, dict):
-            goal_states = [goal_states]
+        if isinstance(goals, Goal):
+            goals = [goals]
 
-        for goal in goal_states:
+        for goal_info in goals:
+            goal = goal_info.goal_state
+            heuristic = goal_info.heuristic
+
             while frontier:
                 self.node_developed += 1
                 _, current_cost, current_state_tuple, plan, elapsed_time = heapq.heappop(frontier)
@@ -80,14 +84,15 @@ class GOAPPlanner:
                         new_elapsed_time = elapsed_time + action.duration
 
                         h = 0
-                        if self.heuristic is not None:
-                            h = self.heuristic(new_state, goal, context)
+                        if heuristic is not None:
+                            h = heuristic(new_state, goal, context)
 
                         priority = new_cost + h
                         if priority == float('inf'):
                             raise Exception("infinite weight. Something is wrong")
 
-                        heapq.heappush(frontier, (priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
+                        heapq.heappush(frontier, (
+                        priority, new_cost, self._state_to_tuple(new_state), new_plan, new_elapsed_time))
 
         return [], float('inf')
 
